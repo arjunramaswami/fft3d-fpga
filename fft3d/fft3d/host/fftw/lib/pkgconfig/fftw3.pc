@@ -1,0 +1,11 @@
+prefix=/upb/scratch/departments/pc2/groups/hpc-lco-plessl/arjunr/opencl/FourierTransforms/fft3d/fft3d/host/fftw
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: FFTW
+Description: fast Fourier transform library
+Version: 3.3.8
+Libs: -L${libdir} -lfftw3 
+Libs.private: -lm
+Cflags: -I${includedir}
