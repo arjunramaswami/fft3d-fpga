@@ -33,13 +33,20 @@ CXX := g++
 TARGET := host
 TARGET_DIR := bin
 
+# FFTW
+FFTW_INC_DIR := $(FFTW_INC)
+FFTW_LIB_DIR := $(FFTW_DIR)
+
 # Directories
-INC_DIRS := host/inc ../common/inc host/fftw/include host/fftwF/include
-LIB_DIRS := host/fftw/lib host/fftwF/lib
+INC_DIRS := host/inc ../common/inc $(FFTW_INC_DIR)
+#INC_DIRS := host/inc ../common/inc host/fftw/include host/fftwF/include
+#LIB_DIRS := host/fftw/lib host/fftwF/lib
+LIB_DIRS :=  $(FFTW_LIB_DIR)
 
 # Files
 INCS := $(wildcard host/inc/*.h)
 SRCS := $(wildcard host/src/*.cpp host/src/*.c ../common/src/AOCLUtils/*.cpp main.cpp)
+#LIBS := rt pthread 
 LIBS := rt pthread fftw3 fftw3f
 
 # Make it all!

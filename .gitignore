@@ -1,0 +1,12 @@
+bin/
+samples/
+inputfiles/
+outputfiles/
+reports/
+vscode/
+test/
+tags
+*.DS_Store
+slurm*
+*.swp
+*.vscode

@@ -274,7 +274,6 @@ cmplex twiddle(int index, int stage, int size, int stream) {
       // Use the precomputed twiddle factors, if available for single precision floats  - otherwise, compute them
 
       const double TWOPI = 2.0f * M_PI;
-    #endif
 
       int multiplier;
 

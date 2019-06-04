@@ -2,11 +2,12 @@
 #include <stdlib.h>
 #include <math.h>
 #include <sys/time.h>
-#include "fft_decl.h"
+#include "fft3d_decl.h"
 
+/*
 static void fourier_transform_gold(int lognr_points, cmplex *data, bool inverse);
 static void fourier_stage(int lognr_points, cmplex * data);
-int coord(int iteration, int i, int j, int N);
+// int coord(int iteration, int i, int j, int N);
 void check_correctness(int N, cmplex *h_verify, cmplex *h_outData);
 
 // Reference Fourier Transform 3d
@@ -50,7 +51,6 @@ void fourier_transform_3d(int lognr_points, cmplex *h_verify, bool inverse){
     }
   }
 
-  /********
   FILE *fp;
   fp = fopen("test.txt", "w+");
 
@@ -63,7 +63,6 @@ void fourier_transform_3d(int lognr_points, cmplex *h_verify, bool inverse){
     }
   }
   fclose(fp);
-  */
 
   // 3D
   for (int i = 0; i < N; i++) {
@@ -146,10 +145,6 @@ static void fourier_stage(int lognr_points, cmplex *data) {
    }
 }
 
-// provides a linear offset in the input array
-int coord(int iteration, int i, int j, int N) {
-  return iteration * N * N + i * N + j;
-}
 
 
 void check_correctness(int N, cmplex *h_verify, cmplex *h_outData){
@@ -178,3 +173,4 @@ void check_correctness(int N, cmplex *h_verify, cmplex *h_outData){
   printf("\tSignal to noise ratio on output sample: %f --> %s\n\n", db, db > 120 ? "PASSED" : "FAILED");
 
 }
+*/
