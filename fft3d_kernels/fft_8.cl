@@ -275,10 +275,6 @@ cmplx twiddle(int index, int stage, int size, int stream) {
       // Use the precomputed twiddle factors, if available for single precision floats  - otherwise, compute them
 
       const double TWOPI = 2.0f * M_PI;
-<<<<<<< HEAD:fft3d/fft3d/device/fft_8.cl
-
-=======
->>>>>>> wip/restructure:fft3d_kernels/fft_8.cl
       int multiplier;
 
       // The latter 3 streams will generate the second half of the elements
