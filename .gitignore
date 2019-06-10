@@ -1,7 +1,9 @@
 bin/
+fpgabitstream/
 samples/
 inputfiles/
 outputfiles/
+scripts/
 reports/
 vscode/
 test/
@@ -10,3 +12,4 @@ tags
 slurm*
 *.swp
 *.vscode
+host
