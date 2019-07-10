@@ -68,6 +68,9 @@ This installs the necessary tools to compile OpenCL kernel code.
 Download [Intel SDK for OpenCL Applications](https://software.intel.com/en-us/intel-opencl) 
 and follow the same steps as above. 
 
+Installing without GUI requires changing the `silent.cfg` file to *accept* EULA
+and installing silently - `./install.sh -s silent.cfg`
+
 ### AOCL Pro
 
 This installs the requires device/libraries for `Intel(R) FPGA Emulation Platform for 

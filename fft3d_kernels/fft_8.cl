@@ -42,11 +42,9 @@
 // Includes tabled twiddle factors - storing constants uses fewer resources
 // than instantiating 'cos' or 'sin' hardware
 #include "twid_radix4_8.cl" 
-#include "fft3d_config.h"
 
 // Convenience struct representing the 8 data points processed each step
 // Each member is a float2 representing a complex number
-
 typedef struct {
    double2 i0;
    double2 i1;
@@ -69,7 +67,7 @@ typedef struct {
    float2 i7;
 } float2x8;
 
-#if __FPGA_SP
+#ifdef __FPGA_SP
    typedef float2x8 cmplx8;
 #else
    typedef double2x8 cmplx8;
@@ -216,7 +214,7 @@ cmplx twiddle(int index, int stage, int size, int stream) {
 
        int twid_stage = stage >> 1;
 
-   #if __FPGA_SP
+   #ifdef __FPGA_SP
        constant float * twiddles_cos[TWID_STAGES][6] = {
                             {tc00, tc01, tc02, tc03, tc04, tc05}, 
                             {tc10, tc11, tc12, tc13, tc14, tc15}, 

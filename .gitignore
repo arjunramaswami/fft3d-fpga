@@ -13,3 +13,4 @@ slurm*
 *.swp
 *.vscode
 host
+*.log

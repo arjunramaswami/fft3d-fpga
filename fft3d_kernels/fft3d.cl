@@ -2,14 +2,18 @@
  *  Author: Arjun Ramaswami
  *****************************************************************************/
 
-#include "fft_8.cl" 
-#define LOGPOINTS 3
-#define POINTS (1 << LOGPOINTS)
 #include "fft3d_config.h"
 #include "channels.h"
+#include "fft_8.cl" 
+
+// Macro for FFT3d
+#define LOGN 5
+
+// Macros for the 8 point 1d FFT
+#define LOGPOINTS 3
+#define POINTS (1 << LOGPOINTS)
 
 // --- CODE -------------------------------------------------------------------
-
 int bit_reversed(int x, int bits) {
   int y = 0;
   #pragma unroll 
