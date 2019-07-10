@@ -1,141 +1,116 @@
-# You must configure ALTERAOCLSDKROOT to point the root directory of the Intel(R) FPGA SDK for OpenCL(TM)
-# software installation.
+# Author : Arjun Ramaswami
+# email  : ramaswami.arjun@gmail.com
+#
+# Multi Step Compilation for Intel OpenCL Kernel Code
 
-ifeq ($(VERBOSE),1)
-ECHO := 
-else
-ECHO := @
+# Check if Intel OpenCL SDK is installed and path set
+ifeq ($(wildcard $(INTELFPGAOCLSDKROOT)),)
+$(error Set INTELFPGAOCLSDKROOT to the root directory of the Intel(R) FPGA SDK for OpenCL(TM) software installation)
+endif
+ifeq ($(wildcard $(INTELFPGAOCLSDKROOT)/host/include/CL/opencl.h),)
+$(error Set INTELFPGAOCLSDKROOT to the root directory of the Intel(R) FPGA SDK for OpenCL(TM) software installation.)
 endif
 
-# Where is the Intel(R) FPGA SDK for OpenCL(TM) software?
-ifeq ($(wildcard $(ALTERAOCLSDKROOT)),)
-$(error Set ALTERAOCLSDKROOT to the root directory of the Intel(R) FPGA SDK for OpenCL(TM) software installation)
-endif
-ifeq ($(wildcard $(ALTERAOCLSDKROOT)/host/include/CL/opencl.h),)
-$(error Set ALTERAOCLSDKROOT to the root directory of the Intel(R) FPGA SDK for OpenCL(TM) software installation.)
-endif
+# Compilers
+AOC := aoc
+
+# Compiler Flags
+AOCFLAGS   := -g -v
+FPFLAGS    :=
+EMUFLAGS   := -march=emulator
+SIMFLAGS   := -march=simulator 
+PROFFLAGS  := -fp-relaxed -profile=all
+INTERFLAGS := -fp-relaxed -report -rtl
+SYNFLAGS   := -fp-relaxed
 	
-# KERNEL 
-# ----------------------------------------------------
+# Libraries 
 
-ifeq ($(__FPGA_SP),1)
-	TARGET_SYN_DIR :=  fpgabitstream/fft3d/synthesis_sp/
+# Board Name
+BOARD := p520_hpc_sg280l     # Stratix 10
+#BOARD := p385a_sch_ax115    # Arria 10
+
+# Paths to targets
+TARGET_PATH    := fpgabitstream/fft3d
+TARGET_DP_DIR  := $(TARGET_PATH)/dp
+TARGET_SP_DIR  := $(TARGET_PATH)/sp
+
+# Pass FPGA_DP=1 as cmd line arg to make to activate double precision compilation 
+ifeq ($(FPGA_DP),1)
+	TARGET_DIR := $(TARGET_DP_DIR)
+ 	FPFLAGS :=  $(FPFLAGS)
 else
-	TARGET_SYN_DIR :=  fpgabitstream/fft3d/synthesis_dp/
+	TARGET_DIR := $(TARGET_SP_DIR)
+	FPFLAGS := $(FPFLAGS) -D __FPGA_SP
 endif
 
-<<<<<<< HEAD:fft3d/fft3d/Makefile
-# Compiler
-CXX := g++
-
-# Target
-TARGET := host
-TARGET_DIR := bin
-
-# FFTW
-FFTW_INC_DIR := $(FFTW_INC)
-FFTW_LIB_DIR := $(FFTW_DIR)
-
-# Directories
-INC_DIRS := host/inc ../common/inc $(FFTW_INC_DIR)
-#INC_DIRS := host/inc ../common/inc host/fftw/include host/fftwF/include
-#LIB_DIRS := host/fftw/lib host/fftwF/lib
-LIB_DIRS :=  $(FFTW_LIB_DIR)
-
+TARGET_EMU_DIR   ?= $(TARGET_DIR)/emulation
+TARGET_SIM_DIR   ?= $(TARGET_DIR)/simulation
+TARGET_INTER_DIR ?= $(TARGET_DIR)/report
+TARGET_PROF_DIR  ?= $(TARGET_DIR)/profile
+TARGET_SYN_DIR   ?= $(TARGET_DIR)/synthesis
+	
 # Files
-INCS := $(wildcard host/inc/*.h)
-SRCS := $(wildcard host/src/*.cpp host/src/*.c ../common/src/AOCLUtils/*.cpp main.cpp)
-#LIBS := rt pthread 
-LIBS := rt pthread fftw3 fftw3f
-
-# Make it all!
-all : $(TARGET_DIR)/$(TARGET)
-
-# Host executable target.
-$(TARGET_DIR)/$(TARGET) : Makefile $(SRCS) $(INCS) $(TARGET_DIR)
-	$(ECHO)$(CXX) $(CPPFLAGS) $(CXXFLAGS) -fPIC $(foreach D,$(INC_DIRS),-I$D) \
-			$(AOCL_COMPILE_CONFIG) $(SRCS) $(AOCL_LINK_CONFIG) \
-			$(foreach D,$(LIB_DIRS),-L$D) \
-			$(foreach L,$(LIBS),-l$L) \
-			-o $(TARGET_DIR)/$(TARGET)
-
-$(TARGET_DIR) :
-	$(ECHO)mkdir $(TARGET_DIR)
-	
-# Standard make targets
-clean :
-	$(ECHO)rm -f $(TARGET_DIR)/$(TARGET)
-
-.PHONY : all clean # ---------------
-
-# KERNEL
-# ---------------
-
-# Target
-=======
-# Target directory
->>>>>>> wip/restructure:fft3d_kernels/Makefile
-TARGET_EMU_DIR := emulation
-TARGET_SYN_DIR := synthesis
-TARGET_INTER_DIR := report
-TARGET_PROF_DIR := profile
+KERNEL_SRCS := ./fft3d.cl
 
 # Targets
 TARGET_KERNEL := fft3d.aocx
 TARGET_INTERMEDIATE := fft3d.aocr
 
-# Files
-KERNEL_SRCS := $(wildcard ./fft3d.cl)
+default: help 
+	$(error No target specified)
 
-# Board
-BOARD := p520_hpc_sg280l
-#BOARD := p385a_sch_ax115
+help: 
+	$(info ***************************************************)
+	$(info Choose one of the steps to compile the FFT3d kernel)
+	$(info ***************************************************)
+	$(info emulate  =  Compile kernels for emulation)
+	$(info syn      =  Synthesize kernels  )
+	$(info inter    =  Intermediate Report )
+	$(info profile  =  Profile kernels  )
+	$(info sim      =  Simulate kernels )
+	$(info clean    =  deletes syn folders and files)
+	$(info emuclean =  deletes emulation folders and files)
+	$(info fullclean = deletes all files )
+	$(info help     =  Prints help )
+	$(info ***************************************************)
+	$(info Command Line Flags with Make:					  )
+	$(info ***************************************************)
+	$(info FPGA_DP=1   = enables emulation with double precision floating operations)
+	$(info ***************************************************)
 
-emulate: $(TARGET_DIR)/$(TARGET_EMU_DIR)/$(TARGET_KERNEL)
+# Kernel Emulation
+emulate: 
+	mkdir -p $(TARGET_EMU_DIR)
+	aoc $(FPFLAGS) $(AOCFLAGS) $(KERNEL_SRCS) -o $(TARGET_EMU_DIR)/$(TARGET_KERNEL)
 
-# Kernel Emulation target
-$(TARGET_DIR)/$(TARGET_EMU_DIR)/$(TARGET_KERNEL): Makefile $(KERNEL_SRCS) \
-										$(TARGET_DIR)/$(TARGET_EMU_DIR) 
-	$(ECHO)aoc -march=emulator -board=$(BOARD) -v -g $(KERNEL_SRCS) -o $@ 
-# aoc -v -march=emulator device/dft.cl -o bin/dft.aocx --board p385a_mac_ax115
+# kernel intermediate compilation for report
+inter: 
+	mkdir -p $(TARGET_INTER_DIR)
+	aoc $(FPFLAGS) $(AOCFLAGS) $(INTERFLAGS) $(KERNEL_SRCS) -o $(TARGET_INTER_DIR)/$(TARGET_INTERMEDIATE)
 
-# kernel synthesis
-syn: $(TARGET_DIR)/$(TARGET_SYN_DIR)/$(TARGET_KERNEL)
+# Kernel Simulation - Only single precision floating point ops
+sim: 
+	mkdir -p $(TARGET_SIM_DIR)
+	aoc -D __FPGA_SP $(AOCFLAGS) $(SIMFLAGS) $(KERNEL_SRCS) -o $(TARGET_SIM_DIR)/$(TARGET_KERNEL)
 
-$(TARGET_DIR)/$(TARGET_SYN_DIR)/$(TARGET_KERNEL): Makefile $(KERNEL_SRCS) \
-										$(TARGET_DIR)/$(TARGET_SYN_DIR)
-	aoc -fp-relaxed --board $(BOARD) -g -v $(KERNEL_SRCS) -o $@ > syn_$$(date +%Y%m%d%H%M%S).log 2>&1 
+# Kernel Profiling - Only single precision floating point ops
+profile: 
+	mkdir -p $(TARGET_PROF_DIR)
+	aoc -D __FPGA_SP $(AOCFLAGS) $(PROFFLAGS) --board $(BOARD) $(KERNEL_SRCS) -o $(TARGET_PROF_DIR)/$(TARGET_KERNEL) 
+	#@echo aoc -D __FPGA_SP $(AOCFLAGS) $(PROFFLAGS) --board $(BOARD) $(KERNEL_SRCS) -o $(TARGET_PROF_DIR)/$(TARGET_KERNEL) > profile_$$(date +%Y%m%d%H%M%S).log 2>&1
+
+# Kernel Synthesis - Only single precision floating point ops
+syn: 
+	mkdir -p $(TARGET_SYN_DIR)
+	aoc -D __FPGA_SP $(AOCFLAGS) $(SYNFLAGS) --board $(BOARD) $(KERNEL_SRCS) -o $(TARGET_SYN_DIR)/$(TARGET_KERNEL) 
+	#@echo aoc -D __FPGA_SP $(AOCFLAGS) $(SYNFLAGS) --board $(BOARD) $(KERNEL_SRCS) -o $(TARGET_SYN_DIR)/$(TARGET_KERNEL) > syn_$$(date +%Y%m%d%H%M%S).log 2>&1 
 	#nohup aoc -fp-relaxed -g -v $(KERNEL_SRCS) -o $@ > test.log &
 
-profile: $(TARGET_DIR)/$(TARGET_PROF_DIR)/$(TARGET_KERNEL)
+clean:
+	rm -rf d$(TARGET_SYN_DIR)/
+emuclean: 
+	rm -rf $(TARGET_EMU_DIR)/
+fullclean: 
+	rm -rf $(TARGET_PATH)/
 
-$(TARGET_DIR)/$(TARGET_PROF_DIR)/$(TARGET_KERNEL): Makefile $(KERNEL_SRCS) \
-										$(TARGET_DIR)/$(TARGET_PROF_DIR)
-	aoc -fp-relaxed -profile=all --board $(BOARD) -g -v $(KERNEL_SRCS) -o $@ > profile_$$(date +%Y%m%d%H%M%S).log 2>&1
-	#nohup aoc -fp-relaxed -profile=all --board $(BOARD) -g -v $(KERNEL_SRCS) -o $@ > test_report.log
-# kernel intermediate synthesis: report
-report: $(TARGET_DIR)/$(TARGET_INTER_DIR)/$(TARGET_INTERMEDIATE)
-
-$(TARGET_DIR)/$(TARGET_INTER_DIR)/$(TARGET_INTERMEDIATE): Makefile $(KERNEL_SRCS) \
-										$(TARGET_DIR)/$(TARGET_INTER_DIR)
-	aoc -fp-relaxed -g -report --board $(BOARD) -v -rtl $(KERNEL_SRCS) -o $@ > report.log
-	#aoc -fp-relaxed -g -report --board $(BOARD) -v -c $(KERNEL_SRCS) -o $@ &
-
-$(TARGET_DIR)/$(TARGET_EMU_DIR) : 
-	$(ECHO)mkdir -p $@
-
-$(TARGET_DIR)/$(TARGET_SYN_DIR) : 
-	$(ECHO)mkdir -p $@
-
-$(TARGET_DIR)/$(TARGET_INTER_DIR) : 
-	$(ECHO)mkdir -p $@
-
-$(TARGET_DIR)/$(TARGET_PROF_DIR) : 
-	$(ECHO)mkdir -p $@
-# nohup aoc --fp-relaxed --profile ../../device/matrix_mul.cl > test.log &
-
-# Standard make targets
-clean :
-	$(ECHO)rm -f $(TARGET_DIR)/$(TARGET)
-
-.PHONY : all clean # ---------------
+.PHONY : clean emuclean fullclean syn profile sim inter emulate help default # ---------------
