@@ -15,36 +15,44 @@ endif
 CC := gcc
 
 # Compiler Flags
-CFLAGS := -march=native -fno-omit-frame-pointer -g 
+CFLAGS := -march=native -fno-omit-frame-pointer -ggdb3 -lm
 ifeq ($(DEBUG),1)
 	CFLAGS := $(CFLAGS) -O1 -fsanitize=leak -DDEBUG
 else
 	CFLAGS := $(CFLAGS) -O3 -funroll-loops
 endif
 SRCS := $(wildcard main.c common/*.c api/*.c)
-CFLAGS := $(CFLAGS) $(SRCS) 
+# Pass FPGA_DP=1 as cmd line arg to make to activate double precision compilation 
+ifeq ($(FPGA_DP),1)
+ 	FPFLAGS :=  $(FPFLAGS)
+else
+	FPFLAGS := $(FPFLAGS) -D __FPGA_SP
+endif
+CFLAGS := $(CFLAGS) $(SRCS) $(FPFLAGS)
 
 # Include Directories 
 AOCL_HEADER_DIRS := $(shell aocl compile-config)
 INC := -Icommon -Iapi 
-INC_DIRS :=  $(FFTW_INC) $(AOCL_HEADER_DIRS) $(INC)
+INC_DIRS :=  -I$(FFTW_INC) $(AOCL_HEADER_DIRS) $(INC)
 
 # Linker Directories
 AOCL_LINKER_DIRS = $(shell aocl ldflags) 
-LIB_DIRS :=  $(FFTW_LIB) $(AOCL_LINKER_FLAGS)
+LIB_DIRS :=  -L$(FFTW_DIR) $(AOCL_LINKER_DIRS)
 
 # Libraries
 AOCL_LIBS = $(shell aocl ldlibs)
-ifeq ($(DEBUG),1)
 LIBS := -lrt -lpthread -lfftw3 -lfftw3f
-else
-LIBS := -lrt -lpthread
-endif
 LIBS := $(LIBS) $(AOCL_LIBS)
 
 # Target
 TARGETDIR := .
 TARGET := host
+
+$(info -------------------------------)
+$(info FFTW Version     : $(FFTW_VERSION))
+$(info FFTW Include Dir : $(FFTW_INC) ) 
+$(info FFTW Shared Libs : $(FFTW_DIR) ) 
+$(info -------------------------------)
 
 all : 
 	mkdir -p $(TARGETDIR)
