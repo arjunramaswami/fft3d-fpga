@@ -2,16 +2,32 @@
  *  Author: Arjun Ramaswami
  *****************************************************************************/
 
-#include "fft3d_config.h"
-#include "channels.h"
-#include "fft_8.cl" 
+#ifdef __FPGA_SP
+#pragma message " Single Precision Activated"
+    typedef float2 cmplex;
+#else
+#pragma message " Double Precision Activated"
+    typedef double2 cmplex;
+    #pragma OPENCL EXTENSION cl_khr_fp64 : enable
+#endif
 
-// Macro for FFT3d
-#define LOGN 5
+#ifndef LOGN
+#  define LOGN 6
+#endif
+
+#include "fft_8.cl" 
 
 // Macros for the 8 point 1d FFT
 #define LOGPOINTS 3
 #define POINTS (1 << LOGPOINTS)
+
+#pragma OPENCL EXTENSION cl_intel_channels : enable
+channel cmplex chaninfft[8] __attribute__((depth(8)));
+channel cmplex chanoutfft[8] __attribute__((depth(8)));
+channel cmplex chaninfft2[8] __attribute__((depth(8)));
+channel cmplex chanoutfft2[8] __attribute__((depth(8)));
+channel cmplex chaninfetch[8] __attribute__((depth(8)));
+
 
 // --- CODE -------------------------------------------------------------------
 int bit_reversed(int x, int bits) {
@@ -25,7 +41,7 @@ int bit_reversed(int x, int bits) {
   return y;
 }
 
-void sendTofft(cmplx *buffer, const unsigned N, unsigned j){
+void sendTofft(cmplex *buffer, const unsigned N, unsigned j){
   write_channel_intel(chaninfft[0], buffer[j]);               // 0
   write_channel_intel(chaninfft[1], buffer[4 * N / 8 + j]);   // 32
   write_channel_intel(chaninfft[2], buffer[2 * N / 8 + j]);   // 16
@@ -37,12 +53,12 @@ void sendTofft(cmplx *buffer, const unsigned N, unsigned j){
 }
 
 // Kernel that fetches data from global memory 
-kernel void fetch(global volatile cmplx * restrict src) {
+kernel void fetch(global volatile cmplex * restrict src) {
   const unsigned N = (1 << LOGN);
 
   for(unsigned k = 0; k < (1 << (LOGN + LOGN)); k++){ 
 
-    cmplx buf[N];
+    cmplex buf[N];
     #pragma unroll 8
     for(unsigned i = 0; i < N; i++){
       buf[i & ((1<<LOGN)-1)] = src[(k << LOGN) + i];    
@@ -55,7 +71,7 @@ kernel void fetch(global volatile cmplx * restrict src) {
 
   for(unsigned k = 0; k < (1 << (LOGN+LOGN)); k++){ 
 
-    cmplx buf[N];
+    cmplex buf[N];
     for(unsigned i = 0; i < (N / 8); i++){
 
         #pragma unroll 8
@@ -83,12 +99,12 @@ kernel void fft3da(int inverse) {
    * array are simple transfers between adjacent array elements
    */
 
-  cmplx fft_delay_elements[N + POINTS * (LOGN - 2)];
+  cmplex fft_delay_elements[N + POINTS * (LOGN - 2)];
   for( int j = 0; j < N * 2; j++){
 
       // needs to run "N / 8 - 1" additional iterations to drain the last outputs
       for (unsigned i = 0; i < N * (N / POINTS) + N / POINTS - 1; i++) {
-        cmplx8 data;
+        cmplex8 data;
 
         // Read data from channels
         if (i < N * (N / POINTS)) {
@@ -125,12 +141,12 @@ kernel void fft3da(int inverse) {
 }
 
 // Transposes fetched data; stores them to global memory
-kernel void transpose(global cmplx * restrict dest) {
+kernel void transpose(global cmplex * restrict dest) {
 
   const unsigned N = (1 << LOGN);
   unsigned revcolt, where_read, where_write, where;
 
-  local cmplx buf[N * N];
+  local cmplex buf[N * N];
 
   // Perform N times N*N transpositions and transfers
   for(unsigned p = 0; p < N; p++){
@@ -200,11 +216,11 @@ kernel void fft3db(int inverse) {
    * array are simple transfers between adjacent array elements
    */
 
-  cmplx fft_delay_elements[N + POINTS * (LOGN - 2)];
+  cmplex fft_delay_elements[N + POINTS * (LOGN - 2)];
   for( int j = 0; j < N; j++){
 
       for (unsigned i = 0; i < N * (N / POINTS) + N / POINTS - 1; i++) {
-        cmplx8 data;
+        cmplex8 data;
 
         // Read data from channels
         if (i < N * (N / POINTS)) {
@@ -246,8 +262,8 @@ kernel void transpose3d(){
   unsigned revcolt, where;
   unsigned where_test;
 
-  local cmplx buf_3d[N * N * N];
-  local cmplx buf[N * N];
+  local cmplex buf_3d[N * N * N];
+  local cmplex buf[N * N];
 
   // perform N*N*N writes to buffer
   for(unsigned m = 0; m < N; m++){

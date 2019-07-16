@@ -39,12 +39,14 @@
 // parallelism and overlaps the execution of multiple invocations of this 
 // function. A new instance can start processing every clock cycle
 
+
 // Includes tabled twiddle factors - storing constants uses fewer resources
 // than instantiating 'cos' or 'sin' hardware
 #include "twid_radix4_8.cl" 
 
 // Convenience struct representing the 8 data points processed each step
 // Each member is a float2 representing a complex number
+
 typedef struct {
    double2 i0;
    double2 i1;
@@ -68,14 +70,16 @@ typedef struct {
 } float2x8;
 
 #ifdef __FPGA_SP
-   typedef float2x8 cmplx8;
+#pragma message "float2*8"
+typedef float2x8 cmplex8;
 #else
-   typedef double2x8 cmplx8;
+#pragma message "double2*8"
+typedef double2x8 cmplex8;
 #endif
 
 // FFT butterfly building block
-cmplx8 butterfly(cmplx8 data) {
-   cmplx8 res;
+cmplex8 butterfly(cmplex8 data) {
+   cmplex8 res;
    res.i0 = data.i0 + data.i1;
    res.i1 = data.i0 - data.i1;
    res.i2 = data.i2 + data.i3;
@@ -88,8 +92,8 @@ cmplx8 butterfly(cmplx8 data) {
 }
 
 // Swap real and imaginary components in preparation for inverse transform
-cmplx8 swap_complex(cmplx8 data) {
-   cmplx8 res;
+cmplex8 swap_complex(cmplex8 data) {
+   cmplex8 res;
    res.i0.x = data.i0.y;
    res.i0.y = data.i0.x;
    res.i1.x = data.i1.y;
@@ -110,8 +114,8 @@ cmplx8 swap_complex(cmplx8 data) {
 }
 
 // FFT trivial rotation building block
-cmplx8 trivial_rotate(cmplx8 data) {
-   cmplx tmp = data.i3;
+cmplex8 trivial_rotate(cmplex8 data) {
+   cmplex tmp = data.i3;
    data.i3.x = tmp.y;
    data.i3.y = -tmp.x;
    tmp = data.i7;
@@ -121,8 +125,8 @@ cmplx8 trivial_rotate(cmplx8 data) {
 }
 
 // FFT data swap building block associated with trivial rotations
-cmplx8 trivial_swap(cmplx8 data) {
-   cmplx tmp = data.i1;
+cmplex8 trivial_swap(cmplex8 data) {
+   cmplex tmp = data.i1;
    data.i1 = data.i2;
    data.i2 = tmp;
    tmp = data.i5;
@@ -132,10 +136,10 @@ cmplx8 trivial_swap(cmplx8 data) {
 }
 
 // FFT data swap building block associated with complex rotations
-cmplx8 swap(cmplx8 data) {
-   cmplx tmp = data.i1;
+cmplex8 swap(cmplex8 data) {
+   cmplex tmp = data.i1;
    data.i1 = data.i4;
-   cmplx tmp2 = data.i2;
+   cmplex tmp2 = data.i2;
    data.i2 = tmp;
    tmp = data.i3;
    data.i3 = data.i5;
@@ -145,12 +149,10 @@ cmplx8 swap(cmplx8 data) {
    return data;
 }
 
-// --- CODE -------------------------------------------------------------------
-
 // This function "delays" the input by 'depth' steps
 // Input 'data' from invocation N would be returned in invocation N + depth
 // The 'shift_reg' sliding window is shifted by 1 element at every invocation 
-cmplx delay(cmplx data, const int depth, cmplx *shift_reg) {
+cmplex delay(cmplex data, const int depth, cmplex *shift_reg) {
    shift_reg[depth] = data;
    return shift_reg[0];
 }
@@ -161,7 +163,7 @@ cmplx delay(cmplx data, const int depth, cmplx *shift_reg) {
 // data.i0         : GECA...   ---->      DBCA...
 // data.i1         : HFDB...   ---->      HFGE...
 
-cmplx8 reorder_data(cmplx8 data, const int depth, cmplx * shift_reg, bool toggle) {
+cmplex8 reorder_data(cmplex8 data, const int depth, cmplex * shift_reg, bool toggle) {
    // Use disconnected segments of length 'depth + 1' elements starting at 
    // 'shift_reg' to implement the delay elements. At the end of each FFT step, 
    // the contents of the entire buffer is shifted by 1 element
@@ -171,7 +173,7 @@ cmplx8 reorder_data(cmplx8 data, const int depth, cmplx * shift_reg, bool toggle
    data.i7 = delay(data.i7, depth, shift_reg + 3 * (depth + 1));
  
    if (toggle) {
-      cmplx tmp = data.i0;
+      cmplex tmp = data.i0;
       data.i0 = data.i1;
       data.i1 = tmp;
       tmp = data.i2;
@@ -194,8 +196,8 @@ cmplx8 reorder_data(cmplx8 data, const int depth, cmplx * shift_reg, bool toggle
 }
 
 // Implements a complex number multiplication
-cmplx comp_mult(cmplx a, cmplx b) {
-   cmplx res;
+cmplex comp_mult(cmplex a, cmplex b) {
+   cmplex res;
    res.x = a.x * b.x - a.y * b.y;
    res.y = a.x * b.y + a.y * b.x;
    return res;
@@ -208,13 +210,14 @@ cmplx comp_mult(cmplx a, cmplx b) {
 // This saves hardware resources, because it avoids evaluating 'cos' and 'sin'
 // functions
 
-cmplx twiddle(int index, int stage, int size, int stream) {
-   cmplx twid;
+cmplex twiddle(int index, int stage, int size, int stream) {
+   cmplex twid;
    // Coalesces the twiddle tables for indexed access
 
        int twid_stage = stage >> 1;
 
    #ifdef __FPGA_SP
+       printf("Single Precision Kernel \n");
        constant float * twiddles_cos[TWID_STAGES][6] = {
                             {tc00, tc01, tc02, tc03, tc04, tc05}, 
                             {tc10, tc11, tc12, tc13, tc14, tc15}, 
@@ -267,12 +270,13 @@ cmplx twiddle(int index, int stage, int size, int stream) {
        }
 
     #else
-
+      printf("Double Precision Kernel \n");
       constant double * twiddles_cos[TWID_STAGES][6];
       constant double * twiddles_sin[TWID_STAGES][6];
       // Use the precomputed twiddle factors, if available for single precision floats  - otherwise, compute them
 
       const double TWOPI = 2.0f * M_PI;
+
       int multiplier;
 
       // The latter 3 streams will generate the second half of the elements
@@ -294,14 +298,13 @@ cmplx twiddle(int index, int stage, int size, int stream) {
       double theta = -1.0f * TWOPI / size * (pos & (size - 1));
       twid.x = cos(theta);
       twid.y = sin(theta);
-
     #endif
 
    return twid;
 }
 
 // FFT complex rotation building block
-cmplx8 complex_rotate(cmplx8 data, int index, int stage, int size) {
+cmplex8 complex_rotate(cmplex8 data, int index, int stage, int size) {
    data.i1 = comp_mult(data.i1, twiddle(index, stage, size, 0));
    data.i2 = comp_mult(data.i2, twiddle(index, stage, size, 1));
    data.i3 = comp_mult(data.i3, twiddle(index, stage, size, 2));
@@ -325,7 +328,7 @@ cmplx8 complex_rotate(cmplx8 data, int index, int stage, int size) {
 // 'logN' should be a COMPILE TIME constant evaluating log(N) - the constant is 
 //        propagated throughout the code to achieve efficient hardware
 //
-cmplx8 fft_step(cmplx8 data, int step, cmplx *fft_delay_elements, 
+cmplex8 fft_step(cmplex8 data, int step, cmplex *fft_delay_elements, 
                   bool inverse, const int logN) {
     const int size = 1 << logN;
 
@@ -374,7 +377,7 @@ cmplx8 fft_step(cmplx8 data, int step, cmplx *fft_delay_elements,
 
         // Assign unique sections of the buffer for the set of delay elements at
         // each stage
-        cmplx *head_buffer = fft_delay_elements + 
+        cmplex *head_buffer = fft_delay_elements + 
                               size - (1 << (logN - stage + 2)) + 8 * (stage - 2);
 
         data = reorder_data(data, delay, head_buffer, toggle);
@@ -402,4 +405,3 @@ cmplx8 fft_step(cmplx8 data, int step, cmplx *fft_delay_elements,
 
     return data;
 }
-

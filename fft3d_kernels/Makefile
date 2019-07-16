@@ -31,8 +31,8 @@ BOARD := p520_hpc_sg280l     # Stratix 10
 
 # Paths to targets
 TARGET_PATH    := fpgabitstream/fft3d
-TARGET_DP_DIR  := $(TARGET_PATH)/dp
-TARGET_SP_DIR  := $(TARGET_PATH)/sp
+TARGET_DP_DIR  := $(TARGET_PATH)/synthesis_dp
+TARGET_SP_DIR  := $(TARGET_PATH)/synthesis_sp
 
 # Pass FPGA_DP=1 as cmd line arg to make to activate double precision compilation 
 ifeq ($(FPGA_DP),1)
@@ -81,7 +81,7 @@ help:
 # Kernel Emulation
 emulate: 
 	mkdir -p $(TARGET_EMU_DIR)
-	aoc $(FPFLAGS) $(AOCFLAGS) $(KERNEL_SRCS) -o $(TARGET_EMU_DIR)/$(TARGET_KERNEL)
+	aoc $(FPFLAGS) $(AOCFLAGS) $(EMUFLAGS) $(KERNEL_SRCS) -o $(TARGET_EMU_DIR)/$(TARGET_KERNEL)
 
 # kernel intermediate compilation for report
 inter: 
