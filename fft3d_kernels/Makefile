@@ -11,11 +11,17 @@ ifeq ($(wildcard $(INTELFPGAOCLSDKROOT)/host/include/CL/opencl.h),)
 $(error Set INTELFPGAOCLSDKROOT to the root directory of the Intel(R) FPGA SDK for OpenCL(TM) software installation.)
 endif
 
+# Variables
+LOGN := 6
+BOARD := p520_max_sg280l     # Stratix 10
+#BOARD := p385a_sch_ax115    # Arria 10
+FPGA_DP := 0
+
 # Compilers
 AOC := aoc
 
 # Compiler Flags
-AOCFLAGS   := -g -v -global-ring -duplicate-ring -cl-single-precision-constant
+AOCFLAGS   := -g -v -D LOGN=$(LOGN) -global-ring -duplicate-ring -cl-single-precision-constant
 FPFLAGS    :=
 EMUFLAGS   := -march=emulator
 SIMFLAGS   := -march=simulator 
@@ -34,10 +40,6 @@ endif
 
 # Libraries 
 
-# Board Name
-BOARD := p520_hpc_sg280l     # Stratix 10
-#BOARD := p385a_sch_ax115    # Arria 10
-
 # Paths to targets
 TARGET_PATH    := fpgabitstream/fft3d
 TARGET_DP_DIR  := $(TARGET_PATH)/synthesis_dp
@@ -54,11 +56,11 @@ else
 	FPFLAGS := $(FPFLAGS) -fp-relaxed -D __FPGA_SP
 endif
 
-TARGET_EMU_DIR   ?= $(TARGET_DIR)/emulation
-TARGET_SIM_DIR   ?= $(TARGET_DIR)/simulation
-TARGET_INTER_DIR ?= $(TARGET_DIR)/report
-TARGET_PROF_DIR  ?= $(TARGET_DIR)/profile
-TARGET_SYN_DIR   ?= $(TARGET_DIR)/synthesis
+TARGET_EMU_DIR   ?= $(TARGET_DIR)/emulation/emu$(LOGN)
+TARGET_SIM_DIR   ?= $(TARGET_DIR)/simulation/sim$(LOGN)
+TARGET_INTER_DIR ?= $(TARGET_DIR)/report/rep$(LOGN)
+TARGET_PROF_DIR  ?= $(TARGET_DIR)/profile/prof$(LOGN)
+TARGET_SYN_DIR   ?= $(TARGET_DIR)/synthesis/syn$(LOGN)
 	
 # Files
 KERNEL_SRCS := ./fft3d.cl
@@ -86,32 +88,34 @@ help:
 	$(info ***************************************************)
 	$(info Command Line Flags with Make:					  )
 	$(info ***************************************************)
+	$(info LOGN=(4:5:6) = select the size of the fft to synthesize, default is 6. )
 	$(info FPGA_DP=1   = enables emulation with double precision floating operations)
+	$(info DEBUG=1     = enables debug messages for emulation)
 	$(info ***************************************************)
 
 # Kernel Emulation
-emulate: 
+emulate: info
 	mkdir -p $(TARGET_EMU_DIR)
 	aoc $(FPFLAGS) $(AOCFLAGS) $(EMUFLAGS) $(KERNEL_SRCS) -o $(TARGET_EMU_DIR)/$(TARGET_KERNEL)
 
 # kernel intermediate compilation for report
-inter: 
+inter: info
 	mkdir -p $(TARGET_INTER_DIR)
 	aoc $(FPFLAGS) $(AOCFLAGS) $(INTERFLAGS) $(KERNEL_SRCS) -o $(TARGET_INTER_DIR)/$(TARGET_INTERMEDIATE)
 
 # Kernel Simulation - Only single precision floating point ops
-sim: 
+sim: info 
 	mkdir -p $(TARGET_SIM_DIR)
 	aoc -D __FPGA_SP $(AOCFLAGS) $(SIMFLAGS) $(KERNEL_SRCS) -o $(TARGET_SIM_DIR)/$(TARGET_KERNEL)
 
 # Kernel Profiling - Only single precision floating point ops
-profile: 
+profile: info 
 	mkdir -p $(TARGET_PROF_DIR)
 	aoc -D __FPGA_SP $(AOCFLAGS) $(PROFFLAGS) --board $(BOARD) $(KERNEL_SRCS) -o $(TARGET_PROF_DIR)/$(TARGET_KERNEL) 
 	#@echo aoc -D __FPGA_SP $(AOCFLAGS) $(PROFFLAGS) --board $(BOARD) $(KERNEL_SRCS) -o $(TARGET_PROF_DIR)/$(TARGET_KERNEL) > profile_$$(date +%Y%m%d%H%M%S).log 2>&1
 
 # Kernel Synthesis - Only single precision floating point ops
-syn: 
+syn: info 
 	mkdir -p $(TARGET_SYN_DIR)
 	aoc -D __FPGA_SP $(AOCFLAGS) $(SYNFLAGS) --board $(BOARD) $(KERNEL_SRCS) -o $(TARGET_SYN_DIR)/$(TARGET_KERNEL) 
 	#@echo aoc -D __FPGA_SP $(AOCFLAGS) $(SYNFLAGS) --board $(BOARD) $(KERNEL_SRCS) -o $(TARGET_SYN_DIR)/$(TARGET_KERNEL) > syn_$$(date +%Y%m%d%H%M%S).log 2>&1 
@@ -124,4 +128,12 @@ emuclean:
 fullclean: 
 	rm -rf $(TARGET_PATH)/
 
-.PHONY : clean emuclean fullclean syn profile sim inter emulate help default # ---------------
+info: 
+	$(info -------------------------------)
+	$(info QUARTUS VERSION    : $(QUARTUS_VERSION))
+	$(info BOARD              : $(BOARD))
+	$(info LOG FFT SIZE       : $(LOGN))
+	$(info PRECISION          : $(FPGA_DP) (1/sp 0/dp))
+	$(info -------------------------------)
+
+.PHONY : clean emuclean fullclean syn profile sim inter emulate help default info # ---------------

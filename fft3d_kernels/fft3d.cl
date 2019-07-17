@@ -2,24 +2,29 @@
  *  Author: Arjun Ramaswami
  *****************************************************************************/
 
+#ifndef LOGN
+#define LOGN 6
+#endif
+
+#ifdef DEBUG
+#define STRINGIFY_VALUE(x) #x    
+#define STRINGIFY_NAME_VALUE(var) #var "=" STRINGIFY_VALUE(var)   // '#' returns the argument as a string (stringifies the variable)
+#pragma message(STRINGIFY_NAME_VALUE(LOGN))                       // requires string as message
+#endif
+
 #ifdef __FPGA_SP
+  #ifdef DEBUG
+    #pragma message "Single Precision Activated"
+  #endif
 
-#ifdef DEBUG
-  #pragma message "Single Precision Activated"
-#endif
   typedef float2 cmplex;
-
 #else
+  #ifdef DEBUG
+    #pragma message "Double Precision Activated"
+  #endif
 
-#ifdef DEBUG
-  #pragma message "Double Precision Activated"
-#endif
   typedef double2 cmplex;
   #pragma OPENCL EXTENSION cl_khr_fp64 : enable
-#endif
-
-#ifndef LOGN
-#  define LOGN 6
 #endif
 
 #include "fft_8.cl" 
