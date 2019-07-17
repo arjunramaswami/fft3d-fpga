@@ -3,12 +3,19 @@
  *****************************************************************************/
 
 #ifdef __FPGA_SP
-#pragma message " Single Precision Activated"
-    typedef float2 cmplex;
+
+#ifdef DEBUG
+  #pragma message "Single Precision Activated"
+#endif
+  typedef float2 cmplex;
+
 #else
-#pragma message " Double Precision Activated"
-    typedef double2 cmplex;
-    #pragma OPENCL EXTENSION cl_khr_fp64 : enable
+
+#ifdef DEBUG
+  #pragma message "Double Precision Activated"
+#endif
+  typedef double2 cmplex;
+  #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 #endif
 
 #ifndef LOGN

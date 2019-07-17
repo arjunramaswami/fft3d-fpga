@@ -15,14 +15,23 @@ endif
 AOC := aoc
 
 # Compiler Flags
-AOCFLAGS   := -g -v
+AOCFLAGS   := -g -v -global-ring -duplicate-ring -cl-single-precision-constant
 FPFLAGS    :=
 EMUFLAGS   := -march=emulator
 SIMFLAGS   := -march=simulator 
+INTERFLAGS := -report -rtl
 PROFFLAGS  := -fp-relaxed -profile=all
-INTERFLAGS := -fp-relaxed -report -rtl
 SYNFLAGS   := -fp-relaxed
-	
+
+# debug flags are purposely appended to emuflags instead of aocflags 
+# therefore, DEBUG mode only for emulation
+# mostly used to check if the preprocessor flags enable correct code compilation
+ifeq ($(DEBUG),1)
+	EMUFLAGS := $(EMUFLAGS) -Werror -DDEBUG
+else
+	EMUFLAGS := $(EMUFLAGS)
+endif	
+
 # Libraries 
 
 # Board Name
@@ -35,12 +44,14 @@ TARGET_DP_DIR  := $(TARGET_PATH)/synthesis_dp
 TARGET_SP_DIR  := $(TARGET_PATH)/synthesis_sp
 
 # Pass FPGA_DP=1 as cmd line arg to make to activate double precision compilation 
+# Only for emulation and for generating reports
+# double precision disables relaxation and rounding in floating point operations 
 ifeq ($(FPGA_DP),1)
 	TARGET_DIR := $(TARGET_DP_DIR)
- 	FPFLAGS :=  $(FPFLAGS)
+ 	FPFLAGS :=  $(FPFLAGS) -fpc
 else
 	TARGET_DIR := $(TARGET_SP_DIR)
-	FPFLAGS := $(FPFLAGS) -D __FPGA_SP
+	FPFLAGS := $(FPFLAGS) -fp-relaxed -D __FPGA_SP
 endif
 
 TARGET_EMU_DIR   ?= $(TARGET_DIR)/emulation
