@@ -133,7 +133,7 @@ info:
 	$(info QUARTUS VERSION    : $(QUARTUS_VERSION))
 	$(info BOARD              : $(BOARD))
 	$(info LOG FFT SIZE       : $(LOGN))
-	$(info PRECISION          : $(FPGA_DP) (1/sp 0/dp))
+	$(info PRECISION          : $(FPGA_DP) (0/sp 1/dp))
 	$(info -------------------------------)
 
 .PHONY : clean emuclean fullclean syn profile sim inter emulate help default info # ---------------

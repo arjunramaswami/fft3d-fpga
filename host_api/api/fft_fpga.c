@@ -10,9 +10,20 @@
 
 // common dependencies
 #include "CL/opencl.h"
-//local dependencies
-#include "fft_fpga.h"
 #include "../common/opencl_utils.h"
+#include "fft_api.h"
+
+// host variables
+#ifndef KERNEL_VARS
+#define KERNEL_VARS
+static cl_platform_id platform = NULL;
+static cl_device_id *devices;
+static cl_device_id device = NULL;
+static cl_context context = NULL;
+static cl_program program = NULL;
+static cl_command_queue queue1 = NULL, queue2 = NULL, queue3 = NULL;
+static cl_command_queue queue4 = NULL, queue5 = NULL, queue6 = NULL;
+#endif
 
 // Function prototypes
 int init();
