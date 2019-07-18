@@ -111,9 +111,9 @@ void main(int argc, const char **argv) {
     // execute fpga fft3d
     double start = getTimeinMilliSec();
 #ifdef __FPGA_SP
-    fpga_fft3d_sp_(1, N, fft_data);
+    fpga_fft3d_sp_(!inverse, N, fft_data);
 #else
-    fpga_fft3d_dp_(inverse, N, fft_data);
+    fpga_fft3d_dp_(!inverse, N, fft_data);
 #endif
     double stop = getTimeinMilliSec();
     fpga_runtime += stop - start;

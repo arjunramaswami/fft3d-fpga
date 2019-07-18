@@ -279,12 +279,16 @@ void verify_dp_fft(double2 *fft_data, fftw_complex *fftw_data, int N[3]){
  * \param  N - fft size
  *****************************************************************************/
 void compute_metrics( double fpga_runtime, double fftw_runtime, unsigned iter, int N[3]){
-  char filename[] = "../../outputfiles/output.csv";
+  char filename[] = "../outputfiles/output.csv";
   printf("Printing to %s\n", filename);
 
   FILE *fp = fopen(filename,"r");
   if(fp == NULL){
     fp = fopen(filename,"w");
+    if(fp == NULL){
+      printf("Unable to create file - %s\n", filename);
+      exit(1);
+    }
     fprintf(fp,"device,N,runtime,throughput\n");
   }
   else{
